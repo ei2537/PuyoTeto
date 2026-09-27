@@ -1,0 +1,29 @@
+[
+  {
+    "file": "Common Gameplay Elements.png",
+    "width": 2122,
+    "height": 5836,
+    "bitDepth": 8,
+    "colorType": 6,
+    "alphaChannel": true,
+    "used": false
+  },
+  {
+    "file": "Puyo Puyo Elements.png",
+    "width": 8196,
+    "height": 5318,
+    "bitDepth": 8,
+    "colorType": 6,
+    "alphaChannel": true,
+    "used": false
+  },
+  {
+    "file": "Tetris Elements.png",
+    "width": 2053,
+    "height": 3004,
+    "bitDepth": 8,
+    "colorType": 6,
+    "alphaChannel": true,
+    "used": false
+  }
+]

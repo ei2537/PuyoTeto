@@ -1,0 +1,15 @@
+node_modules/
+dist/
+test-results/
+playwright-report/
+*.log
+.DS_Store
+assets/
+参考サイト/
+.env
+.env.*
+!.env.example
+!server/.env.example
+server-dist/
+supabase/.temp/
+supabase/.branches/
