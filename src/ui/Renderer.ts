@@ -1,4 +1,4 @@
-import type { Game } from '../core/Battle';
+import type { GameView } from '../../shared/protocol';
 import { cells, ghost as tGhost, SHAPES, type Tetromino } from '../games/tetris/TetrisRules';
 import { pairCells, ghost as pGhost } from '../games/puyo/PuyoRules';
 import type { GameKind } from '../core/types';
@@ -137,7 +137,7 @@ export class BoardRenderer {
     this.width = canvas.clientWidth;
     this.height = canvas.clientHeight;
   }
-  draw(game: Game) {
+  draw(game: GameView) {
     const w = this.width,
       h = this.height;
     if (w <= 0 || h <= 0) return;
@@ -199,7 +199,14 @@ export class BoardRenderer {
     } else {
       for (let y = start; y < game.height; y++)
         for (let x = 0; x < game.width; x++)
-          if (game.board[y][x]) {
+          if (
+            game.board[y][x] &&
+            !(
+              game.kind === 'puyo' &&
+              game.garbageTime > 0 &&
+              game.garbageDrops.some((p) => p.x === x && p.y === y)
+            )
+          ) {
             const clearing =
               game.kind === 'tetris'
                 ? game.clearing.includes(y)
@@ -209,6 +216,14 @@ export class BoardRenderer {
           }
     }
     c.globalAlpha = 1;
+    if (game.kind === 'puyo' && game.garbageTime > 0) {
+      const t = 1 - game.garbageTime / 550;
+      for (const p of game.garbageDrops) {
+        const fall = Math.min(1, t / 0.78);
+        const bounce = t < 0.78 ? 0 : Math.sin(((t - 0.78) / 0.22) * Math.PI) * 0.18;
+        draw(p.x, p.fromY + (p.y - p.fromY) * fall * fall - bounce, 5);
+      }
+    }
     if (game.active && !game.lost) {
       if (game.kind === 'tetris') {
         const value = 'IJLOSTZ'.indexOf(game.active.type) + 1;

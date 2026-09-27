@@ -4,6 +4,20 @@ import { grid } from '../src/core/board';
 import { PuyoGame } from '../src/games/puyo/PuyoGame';
 import { findClear, gravity, resolve, rotate, collides } from '../src/games/puyo/PuyoRules';
 
+test('puyo: hard drop is unavailable and garbage animation preserves the authoritative board', () => {
+  const g = new PuyoGame(2),
+    before = structuredClone(g.active);
+  assert.equal(g.act('hardDrop'), false);
+  assert.deepEqual(g.active, before);
+  g.addGarbage(12);
+  const board = structuredClone(g.board);
+  assert.equal(g.garbageDrops.length, 12);
+  assert.equal(g.garbageTime, 550);
+  g.step(200);
+  assert.deepEqual(g.board, board);
+  assert.equal(g.garbageTime, 350);
+});
+
 test('puyo: four orthogonal colors clear; three or diagonal do not', () => {
   const b = grid(6, 14);
   b[13] = [1, 1, 1, 0, 2, 0];

@@ -96,6 +96,7 @@ for (const difficulty of ['easy', 'normal', 'hard'] as const)
           actions = s.kind === 'puyo' ? planPuyo(s, difficulty) : planTetris(s, difficulty);
         assert.ok(actions.length > 0);
         for (const action of actions) assert.equal(g.act(action), true, `${kind}: ${action}`);
+        if (g.kind === 'puyo') g.step(451);
         assert.notEqual(g.phase, 'falling');
         let steps = 0;
         while (g.phase !== 'falling' && !g.lost && steps++ < 400) g.step(16.667);

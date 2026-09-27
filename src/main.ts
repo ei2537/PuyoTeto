@@ -1,4 +1,5 @@
 import './style.css';
+import './online/online.css';
 import { Battle } from './core/Battle';
 import { CPUController } from './core/CPUController';
 import { ACTIONS, type Action, type Difficulty, type GameKind } from './core/types';
@@ -13,15 +14,17 @@ import {
 } from './input/settings';
 import { BoardRenderer, preview, drawEmblem } from './ui/Renderer';
 import { AudioManager } from './ui/AudioManager';
+import { playerView } from './ui/PlayerView';
+import { OnlineUI } from './online/OnlineUI';
 
-type Screen = 'home' | 'select' | 'mode' | 'setup' | 'settings' | 'rules' | 'game';
+type Screen = 'home' | 'select' | 'mode' | 'setup' | 'settings' | 'rules' | 'game' | 'online';
 const labels: Record<Action, string> = {
   left: '左に移動',
   right: '右に移動',
   down: 'ソフトドロップ',
   rotateLeft: '左回転',
   rotateRight: '右回転',
-  hardDrop: 'ハードドロップ',
+  hardDrop: 'ハードドロップ（テトリス）',
   hold: 'HOLD（テトリス）',
 };
 const settings = loadSettings(),
@@ -62,18 +65,27 @@ app.innerHTML = /* HTML */ `<header class="app-header">
     <div class="header-actions">
       <span class="connection" id="connection">KEYBOARD READY</span
       ><button id="sound" aria-label="サウンド切替"></button
-      ><button id="settings-open">操作設定</button>
+      ><button id="settings-open">操作設定</button><button id="account-open">ログイン</button>
     </div>
   </header>
   <main id="main"></main>
   <footer class="app-footer">
     <span id="footer-help">KEYBOARD / GAMEPAD · 1–2 PLAYERS</span
-    ><span>STACK / DUEL &nbsp; — &nbsp; LOCAL ARCADE</span>
+    ><span>STACK / DUEL &nbsp; — &nbsp; PUZZLE ARCADE</span>
   </footer>
   <div id="overlay-root"></div>
   <div class="toast" id="toast" role="status" hidden></div>`;
 const main = document.querySelector<HTMLElement>('#main')!;
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
+const online = new OnlineUI(input, () => navigate('mode'), openSettings);
+online.onAuthChange = () => text('account-open', online.auth.profile?.username || 'ログイン');
+on('account-open', () => {
+  if (screen === 'game') pause();
+  else {
+    navigate('online');
+    online.mount(main, config.kind, true);
+  }
+});
 function text(id: string, value: string) {
   const el = document.getElementById(id);
   if (el && el.textContent !== value) el.textContent = value;
@@ -106,6 +118,10 @@ on('sound', () => {
 });
 soundButton();
 on('brand', () => {
+  if (screen === 'online') {
+    online.exit();
+    return;
+  }
   if (screen === 'game' && battle && battle.state !== 'finished') pause();
   else navigate('home');
 });
@@ -117,6 +133,7 @@ function openSettings() {
   navigate('settings');
 }
 function navigate(next: Screen) {
+  online.unmount();
   capture = null;
   input.keyboard.capture = null;
   input.reset();
@@ -139,6 +156,7 @@ function navigate(next: Screen) {
   else if (screen === 'setup') setup();
   else if (screen === 'settings') settingsScreen();
   else if (screen === 'rules') rules();
+  else if (screen === 'online') online.mount(main, config.kind);
   else mountGame();
   text(
     'footer-help',
@@ -246,9 +264,17 @@ function selectMode() {
           ><span class="description">ひとつの画面で、ふたりの真剣勝負。</span></span
         ><span class="arrow">→</span>
       </button>
+      <button class="choice" id="choose-online">
+        <span class="index mono">03</span
+        ><span
+          ><span class="title">ONLINE</span
+          ><span class="description">クイック対戦・ルーム・大会・リーグ。</span></span
+        ><span class="arrow">→</span>
+      </button>
     </div>
   </section>`;
   bindBack();
+  on('choose-online', () => navigate('online'));
   for (const mode of ['cpu', 'local'] as const)
     on(`choose-${mode}`, () => {
       config.mode = mode;
@@ -348,7 +374,7 @@ function difficultyHint() {
 }
 function controlsText(player: number) {
   const k = settings.players[player].keyboard;
-  return `${esc(keyLabel(k.left))} ${esc(keyLabel(k.right))}：移動　${esc(keyLabel(k.down))}：落下<br>${esc(keyLabel(k.rotateLeft))} / ${esc(keyLabel(k.rotateRight))}：回転　${esc(keyLabel(k.hardDrop))}：一気に落とす${config.kind === 'tetris' ? `　${esc(keyLabel(k.hold))}：HOLD` : ''}`;
+  return `${esc(keyLabel(k.left))} ${esc(keyLabel(k.right))}：移動　${esc(keyLabel(k.down))}：落下<br>${esc(keyLabel(k.rotateLeft))} / ${esc(keyLabel(k.rotateRight))}：回転${config.kind === 'tetris' ? `　${esc(keyLabel(k.hardDrop))}：ハードドロップ　${esc(keyLabel(k.hold))}：HOLD` : ''}`;
 }
 function settingsScreen() {
   main.innerHTML = /* HTML */ `<section class="menu settings">
@@ -401,8 +427,8 @@ function settingsScreen() {
     </div>
     <p class="settings-note">
       単位：ms。ARR 0 は端まで即移動。標準PAD：十字 / 左スティックで移動、X 左回転、A 右回転、Y
-      ドロップ、LB HOLD。<br />ESC / START：一時停止。割り当て待機中の ESC：キャンセル。PADの番号は
-      B0 始まりです。
+      ドロップ・LB HOLDはテトリスのみ。<br />ESC / START：一時停止。割り当て待機中の
+      ESC：キャンセル。PADの番号は B0 始まりです。
     </p>
     <div class="settings-bottom">
       <button id="reset-input">初期設定に戻す</button
@@ -603,42 +629,12 @@ function mountGame() {
 function playerMarkup(p: number) {
   const isCPU = p === 1 && config.mode === 'cpu',
     dev = settings.players[p].gamepad;
-  return /* HTML */ `<article class="player ${config.kind} ${p ? 'p2' : ''}">
-    <div class="player-heading">
-      <span class="player-name"><em>${p + 1}P</em>${isCPU ? 'CPU' : 'PLAYER ' + (p + 1)}</span
-      ><span class="player-device"
-        >${isCPU ? config.difficulty.toUpperCase() : dev === null ? 'KEYBOARD' : `PAD ${dev + 1}`}</span
-      >
-    </div>
-    <div class="play-field">
-      <div class="board-wrap">
-        <canvas
-          class="board"
-          id="board-${p}"
-          aria-label="${isCPU ? 'CPU' : 'Player ' + (p + 1)} の盤面"
-        ></canvas>
-        <div class="board-callout" id="callout-${p}"></div>
-      </div>
-      <aside class="rail">
-        ${config.kind === 'tetris' ? `<div class="hold-box"><div class="rail-label">HOLD</div><canvas class="hold-preview" id="hold-${p}" aria-label="HOLD"></canvas></div>` : ''}
-        <div class="rail-label">NEXT</div>
-        <canvas class="preview" id="next-${p}" aria-label="次のピース"></canvas>
-        <div class="stat">
-          <div class="rail-label">SCORE</div>
-          <div class="stat-value small mono" id="score-${p}">0</div>
-        </div>
-        <div class="stat">
-          <div class="rail-label">GARBAGE</div>
-          <div class="stat-value garbage-value mono" id="garbage-${p}">0</div>
-          <div class="garbage-bar"><i id="garbage-bar-${p}" style="width:0"></i></div>
-        </div>
-      </aside>
-    </div>
-    <div class="player-bottom">
-      <span id="detail-${p}">${config.kind === 'puyo' ? 'BEST CHAIN 0' : 'LINES 0'}</span
-      ><span id="combo-${p}">—</span>
-    </div>
-  </article>`;
+  return playerView(
+    config.kind,
+    p,
+    isCPU ? 'CPU' : 'PLAYER ' + (p + 1),
+    isCPU ? config.difficulty.toUpperCase() : dev === null ? 'KEYBOARD' : `PAD ${dev + 1}`,
+  );
 }
 function pause() {
   if (!battle || screen !== 'game' || battle.state === 'finished') return;
@@ -796,6 +792,7 @@ function menuGamepad(dt: number) {
   }
   if (
     capture ||
+    online.playing ||
     (screen === 'game' && battle?.state !== 'paused' && battle?.state !== 'finished')
   ) {
     menuPadPrevious = down;
@@ -896,6 +893,7 @@ function frame(now: number) {
     }
     drawGame();
   } else accumulator = 0;
+  if (screen === 'online') online.step(dt);
   input.endFrame();
   requestAnimationFrame(frame);
 }

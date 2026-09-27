@@ -43,7 +43,7 @@ export function puyoCandidates(b: Grid, start: Pair): Candidate[] {
         height = Math.max(...columnHeights(b));
       out.push({
         board: resolved.board,
-        path: [...path, 'hardDrop'],
+        path: [...path, ...Array<Action>(land.y - p.y).fill('down')],
         value:
           evaluatePuyo(resolved.board) +
           resolved.chain ** 2 * 24 +
@@ -91,7 +91,7 @@ export function planPuyo(s: PuyoSnapshot, difficulty: Difficulty): Action[] {
   }
   return (
     candidates[difficulty === 'easy' ? Math.min(s.pieces % 3, candidates.length - 1) : 0]?.path || [
-      'hardDrop',
+      'down',
     ]
   );
 }

@@ -11,7 +11,6 @@ import {
   pairCells,
   collides,
   rotate,
-  ghost,
   gravity,
   findClear,
 } from './PuyoRules';
@@ -34,6 +33,8 @@ export class PuyoGame extends Combatant {
   activeTime = 0;
   attackRemainder = 0;
   fallingFrom: Grid | null = null;
+  garbageDrops: { x: number; y: number; fromY: number }[] = [];
+  garbageTime = 0;
   private rng: Random;
   private garbageRng: Random;
   private allClearBonus = false;
@@ -64,16 +65,16 @@ export class PuyoGame extends Combatant {
     if (collides(this.board, this.active)) this.lost = true;
   }
   act(action: Action): boolean {
-    if (this.lost || this.phase !== 'falling' || !this.active || action === 'hold') return false;
+    if (
+      this.lost ||
+      this.phase !== 'falling' ||
+      !this.active ||
+      action === 'hold' ||
+      action === 'hardDrop'
+    )
+      return false;
     const p = this.active,
       grounded = collides(this.board, { ...p, y: p.y + 1 });
-    if (action === 'hardDrop') {
-      const q = ghost(this.board, p);
-      this.score += q.y - p.y;
-      this.active = q;
-      this.lock();
-      return true;
-    }
     if (action === 'rotateLeft' || action === 'rotateRight') {
       const q = rotate(this.board, p, action === 'rotateLeft' ? -1 : 1);
       if (!q) return false;
@@ -101,6 +102,8 @@ export class PuyoGame extends Combatant {
   step(dt: number) {
     if (this.lost) return;
     this.tick(dt);
+    this.garbageTime = Math.max(0, this.garbageTime - dt);
+    if (!this.garbageTime) this.garbageDrops = [];
     if (this.phase !== 'falling') {
       this.phaseTime -= dt;
       if (this.phaseTime > 0) return;
@@ -170,11 +173,13 @@ export class PuyoGame extends Combatant {
       // Never insert garbage in the middle of a chain. Each link can cancel queued attacks.
       this.addGarbage(this.takeGarbage(30));
       this.phase = 'entry';
-      this.phaseTime = 100;
+      this.phaseTime = this.garbageTime || 100;
     }
   }
   addGarbage(amount: number) {
     if (!amount) return;
+    this.garbageDrops = [];
+    this.garbageTime = 550;
     const columns: number[] = [];
     while (columns.length < amount)
       columns.push(
@@ -188,6 +193,11 @@ export class PuyoGame extends Combatant {
         continue;
       }
       this.board[y - 1][x] = GARBAGE;
+      this.garbageDrops.push({
+        x,
+        y: y - 1,
+        fromY: -1 - Math.floor(this.garbageDrops.length / WIDTH),
+      });
     }
     this.events.push({ type: 'garbage', value: amount });
   }

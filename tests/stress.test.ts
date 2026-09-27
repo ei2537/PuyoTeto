@@ -11,9 +11,11 @@ for (const kind of ['puyo', 'tetris'] as const)
     let placements = 0,
       garbagePeak = 0,
       iterations = 0;
+    const planned = [-1, -1];
     while (b.state === 'playing' && placements < 240 && iterations++ < 20000) {
       for (const [i, g] of b.games.entries())
-        if (!g.lost && g.phase === 'falling') {
+        if (!g.lost && g.phase === 'falling' && planned[i] !== g.pieces) {
+          planned[i] = g.pieces;
           const s = g.snapshot(),
             difficulty = i === 0 ? 'normal' : 'hard';
           const plan = s.kind === 'puyo' ? planPuyo(s, difficulty) : planTetris(s, difficulty);

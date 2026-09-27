@@ -629,6 +629,24 @@ main {
 .board-callout:empty {
   display: none;
 }
+.clear-caption {
+  height: 22px;
+  padding-top: 5px;
+  color: var(--player-color);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+.hold-rail {
+  width: 64px;
+  flex: 0 0 64px;
+}
+.hold-rail .hold-preview {
+  width: 64px;
+}
+.player.tetris {
+  width: calc(var(--board-height) * 10 / 22 + 178px);
+}
 .rail {
   width: 86px;
   min-width: 0;
