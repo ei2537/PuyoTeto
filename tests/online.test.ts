@@ -26,9 +26,10 @@ class MemoryStore implements Store {
   wins = new Map<string, number>();
   failFinish = false;
   async recover() {}
-  async createMatch(record: MatchRecord) {
+  async createMatch(record: MatchRecord, competition: LobbyView | null = null) {
     assert.ok(!this.matches.has(record.id));
     this.matches.set(record.id, { record, winner: null, reason: null });
+    if (competition) await this.saveCompetition(competition);
   }
   async saveCompetition(lobby: LobbyView) {
     if (lobby.category !== 'room') this.competitions.set(lobby.id, structuredClone(lobby));

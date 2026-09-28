@@ -62,6 +62,8 @@ export class Auth {
       password,
       options: { data: { username }, emailRedirectTo: location.origin },
     });
+    if (error?.code === 'email_address_not_authorized')
+      throw new Error('確認メールの送信設定が未完了です。運営によるSMTP設定をお待ちください。');
     if (error)
       throw new Error(
         '登録できません。ユーザー名の重複、パスワード条件、送信回数を確認してください。',

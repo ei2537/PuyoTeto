@@ -49,7 +49,11 @@ try {
       () => Number(document.querySelector('#score-1')?.textContent.replaceAll(',', '')) > 0,
     );
     await page.keyboard.press('ArrowLeft');
-    await page.keyboard.press('Space');
+    if (kind === 'puyo') {
+      await page.keyboard.down('ArrowDown');
+      await page.waitForTimeout(100);
+      await page.keyboard.up('ArrowDown');
+    } else await page.keyboard.press('Space');
     await page.waitForFunction(
       () => Number(document.querySelector('#score-0')?.textContent.replaceAll(',', '')) > 0,
     );

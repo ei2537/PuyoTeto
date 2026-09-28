@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
 
@@ -16,6 +16,11 @@ test('Postgres migration: Auth trigger, unique profiles, RLS, service-only RPC a
         'utf8',
       ),
     );
+    const migrationDir = new URL('../supabase/migrations/', import.meta.url);
+    for (const file of (await readdir(migrationDir)).filter((f) =>
+      f.endsWith('_secure_server_lifecycle.sql'),
+    ))
+      await db.exec(await readFile(new URL(file, migrationDir), 'utf8'));
     const a = randomUUID(),
       b = randomUUID(),
       c = randomUUID(),
@@ -64,12 +69,49 @@ test('Postgres migration: Auth trigger, unique profiles, RLS, service-only RPC a
       a,
     ]);
     assert.equal(wins.rows[0].wins, 1);
+    const epoch = randomUUID(),
+      nextEpoch = randomUUID(),
+      interrupted = randomUUID();
+    await db.query('select public.begin_server($1)', [epoch]);
+    await db.query('select public.server_create_match($1,$2,null)', [
+      epoch,
+      {
+        id: interrupted,
+        game: 'tetris',
+        type: 'quick',
+        competitionId: null,
+        players: [{ id: a }, { id: b }],
+      },
+    ]);
+    await db.query('select public.begin_server($1)', [nextEpoch]);
+    assert.equal(
+      (
+        await db.query<{ finish_reason: string }>(
+          'select finish_reason from public.matches where id=$1',
+          [interrupted],
+        )
+      ).rows[0].finish_reason,
+      'server_restart',
+    );
+    await assert.rejects(
+      db.query('select public.server_finish_match($1,$2,$3,$4,null)', [
+        epoch,
+        interrupted,
+        a,
+        'top_out',
+      ]),
+    );
+    assert.equal(
+      (await db.query<{ wins: number }>('select wins from public.profiles where id=$1', [a]))
+        .rows[0].wins,
+      1,
+    );
     await db.exec(
       `reset role;set role authenticated;select set_config('request.jwt.claim.sub','${c}',false);`,
     );
     assert.equal((await db.query('select * from public.matches')).rows.length, 0);
     await db.exec(`select set_config('request.jwt.claim.sub','${a}',false);`);
-    assert.equal((await db.query('select * from public.matches')).rows.length, 1);
+    assert.equal((await db.query('select * from public.matches')).rows.length, 2);
     await db.exec('reset role;set role anon;');
     await assert.rejects(db.exec('select * from public.profiles'));
     await assert.rejects(db.exec('select public.save_competition(null)'));

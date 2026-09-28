@@ -1,0 +1,54 @@
+# Reproducible two-service configuration. Production releases are deliberate:
+# restarting the single simulation server interrupts active matches/competitions.
+projects:
+  - name: PuyoTeto
+    environments:
+      - name: production
+        services:
+          - type: web
+            name: puyoteto-game
+            runtime: node
+            region: singapore
+            plan: free
+            branch: feat/online-multiplayer
+            autoDeployTrigger: 'off'
+            buildCommand: npm ci --include=dev && npm run build:server
+            startCommand: npm run start:server
+            healthCheckPath: /health
+            envVars:
+              - key: NODE_VERSION
+                value: 24.14.1
+              - key: NODE_ENV
+                value: production
+              - key: SUPABASE_URL
+                sync: false
+              - key: SUPABASE_SERVICE_ROLE_KEY
+                sync: false
+              - key: CLIENT_ORIGIN
+                sync: false
+          - type: web
+            name: puyoteto-online
+            runtime: static
+            branch: feat/online-multiplayer
+            autoDeployTrigger: 'off'
+            buildCommand: npm ci --include=dev && npm run build
+            staticPublishPath: ./dist
+            envVars:
+              - key: NODE_VERSION
+                value: 24.14.1
+              - key: VITE_SUPABASE_URL
+                sync: false
+              - key: VITE_SUPABASE_ANON_KEY
+                sync: false
+              - key: VITE_GAME_SERVER_URL
+                sync: false
+            headers:
+              - path: /*
+                name: X-Content-Type-Options
+                value: nosniff
+              - path: /*
+                name: Referrer-Policy
+                value: strict-origin-when-cross-origin
+              - path: /index.html
+                name: Cache-Control
+                value: no-cache

@@ -362,7 +362,20 @@ export class Hub {
       lobbyId,
       fixtureId,
     );
-    await this.store.createMatch(m.persistence);
+    let competition: LobbyView | null = null;
+    if (fixtureId && lobbyId) {
+      competition = structuredClone(requireValue(this.lobbies.get(lobbyId), '大会がありません。'));
+      const fixture = requireValue(
+        competition.fixtures.find((f) => f.id === fixtureId),
+        '対戦枠がありません。',
+      );
+      fixture.status = 'playing';
+      fixture.matchId = m.id;
+      for (const id of ids)
+        competition.members.find((member) => member.id === id)!.status = 'playing';
+    }
+    await this.store.createMatch(m.persistence, competition);
+    if (competition) this.lobbies.set(competition.id, competition);
     this.matches.set(m.id, m);
     ids.forEach((id, player) => {
       const u = this.user(id);
@@ -376,9 +389,10 @@ export class Hub {
     const u = this.user(id),
       original = this.lobby(id),
       l = structuredClone(original);
-    if (l.phase === 'running') {
+    if (l.category !== 'room' && l.phase !== 'waiting') {
       const member = l.members.find((m) => m.id === id)!;
-      member.withdrawn = true;
+      if (l.phase === 'running') member.withdrawn = true;
+      member.connected = false;
       member.ready = false;
       member.status = 'idle';
     } else {
@@ -386,17 +400,18 @@ export class Hub {
       l.count = l.members.length;
     }
     l.queue = l.queue.filter((x) => x !== id);
-    if (l.host === id)
-      l.host =
-        l.members.filter((m) => !m.withdrawn).sort((a, b) => a.joinedAt - b.joinedAt)[0]?.id || id;
-    if (!l.members.some((m) => !m.withdrawn)) l.phase = 'cancelled';
+    const remaining = l.members.filter(
+      (m) => m.id !== id && !m.withdrawn && this.users.get(m.id)?.lobbyId === l.id,
+    );
+    if (l.host === id) l.host = remaining.sort((a, b) => a.joinedAt - b.joinedAt)[0]?.id || id;
+    if (!remaining.length && l.phase !== 'finished') l.phase = 'cancelled';
     await this.persist(l);
     u.lobbyId = null;
     const match = u.matchId ? this.matches.get(u.matchId) : null;
     if (match && !match.saved)
       await this.finish(match, 1 - match.record.players.findIndex((p) => p.id === id), 'surrender');
     u.matchId = null;
-    if (!l.members.length || l.phase === 'cancelled') this.lobbies.delete(l.id);
+    if (!remaining.length || l.phase === 'cancelled') this.lobbies.delete(l.id);
     else if (l.phase === 'running') await this.schedule(l.id);
   }
   private async schedule(id: string) {
@@ -420,20 +435,8 @@ export class Hub {
         continue;
       }
       if (f.players.some((p) => this.busy(this.user(p!)))) continue;
-      const m = await this.startMatch(
-        f.players as [string, string],
-        l.game,
-        l.category,
-        l.id,
-        f.id,
-      );
-      const next = structuredClone(l),
-        nf = next.fixtures.find((x) => x.id === f.id)!;
-      nf.status = 'playing';
-      nf.matchId = m.id;
-      for (const p of f.players) next.members.find((x) => x.id === p)!.status = 'playing';
-      await this.persist(next);
-      l = next;
+      await this.startMatch(f.players as [string, string], l.game, l.category, l.id, f.id);
+      l = this.lobbies.get(id)!;
     }
     // Walkovers can make the next round ready immediately.
     if (availableFixtures(l).length && !l.fixtures.some((f) => f.status === 'playing'))

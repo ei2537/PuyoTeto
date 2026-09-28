@@ -31,8 +31,17 @@ export class MatchRoom {
       this.inputs = [[], []];
       return;
     }
-    for (const player of [0, 1])
-      for (const action of this.inputs[player].splice(0)) this.battle.act(player, action);
+    for (const player of [0, 1]) {
+      const piece = this.battle.games[player].pieces;
+      for (const action of this.inputs[player].splice(0)) {
+        this.battle.act(player, action);
+        if (
+          this.battle.games[player].pieces !== piece ||
+          this.battle.games[player].phase !== 'falling'
+        )
+          break;
+      }
+    }
     this.battle.step(dt);
     this.battle.games.forEach((g) => {
       g.events = [];

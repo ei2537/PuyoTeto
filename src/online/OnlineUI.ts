@@ -89,7 +89,8 @@ export class OnlineUI {
     } catch (error) {
       this.message = error instanceof Error ? error.message : '操作に失敗しました。';
     } finally {
-      this.refresh(true);
+      // Keep a newly opened confirmation visible until the user answers it.
+      if (!this.root?.querySelector('.inline-confirm')) this.refresh(true);
     }
   }
   private async command(command: Command) {
@@ -364,7 +365,7 @@ export class OnlineUI {
   }
   private competitionHTML(l: LobbyView) {
     const name = (id: string | null) => esc(l.members.find((m) => m.id === id)?.username || '未定');
-    return `${l.phase === 'finished' ? `<div class="competition-result"><strong>${l.champion ? `${name(l.champion)} CHAMPION` : '同率優勝'}</strong></div>` : ''}${l.category === 'league' ? `<h2>順位表</h2><p class="settings-note">勝ち3点・引分1点。得点 → 同点者間の直接対決得点 → 勝数。すべて同じ場合は同順位。</p><table class="standings"><thead><tr><th>順位</th><th>プレイヤー</th><th>試合</th><th>勝</th><th>負</th><th>分</th><th>点</th></tr></thead><tbody>${l.standings.map((r) => `<tr><td>${r.rank}</td><td>${name(r.userId)}</td><td>${r.played}</td><td>${r.wins}</td><td>${r.losses}</td><td>${r.draws}</td><td>${r.points}</td></tr>`).join('')}</tbody></table>` : ''}<div class="fixtures">${[
+    return `${l.phase === 'finished' ? `<div class="competition-result"><strong>${l.champion ? `${name(l.champion)} CHAMPION` : l.category === 'league' ? '同率優勝' : '優勝者なし'}</strong></div>` : ''}${l.category === 'league' ? `<h2>順位表</h2><p class="settings-note">勝ち3点・引分1点。得点 → 同点者間の直接対決得点 → 勝数。すべて同じ場合は同順位。</p><table class="standings"><thead><tr><th>順位</th><th>プレイヤー</th><th>試合</th><th>勝</th><th>負</th><th>分</th><th>点</th></tr></thead><tbody>${l.standings.map((r) => `<tr><td>${r.rank}</td><td>${name(r.userId)}</td><td>${r.played}</td><td>${r.wins}</td><td>${r.losses}</td><td>${r.draws}</td><td>${r.points}</td></tr>`).join('')}</tbody></table>` : ''}<div class="fixtures">${[
       ...new Set(l.fixtures.map((f) => f.round)),
     ]
       .map(

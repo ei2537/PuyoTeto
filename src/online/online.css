@@ -220,7 +220,7 @@ details summary {
   font-size: 12px;
 }
 .online-arena {
-  --board-height: min(calc(100dvh - 338px), 620px);
+  --board-height: min(calc(100dvh - 428px), 620px);
   max-width: 1200px;
   margin: auto;
 }

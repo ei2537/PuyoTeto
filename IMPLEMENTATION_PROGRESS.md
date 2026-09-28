@@ -2,97 +2,104 @@
 
 ## Current Goal
 
-Preserve the existing local puzzle games while adding authenticated, server-authoritative online quick matches, rooms, tournaments and leagues, durable results, and Render/Supabase deployment.
+Preserve the local games; finish and deploy authenticated authoritative online matches, rooms, tournaments and leagues. Resume existing work without resetting it.
 
 ## Completed
 
-- Inspected all existing game, input, rendering and test code.
-- Verified baseline: 45 logic tests and Vite production build pass.
-- Confirmed shared Battle/rules have no browser dependency.
-- Confirmed GitHub SSH remote is reachable.
-- Read Supabase/Render deployment skills and current Supabase changelog.
+- Preserved and tested the original local games in 55eb7fd; online implementation in 1d52680.
+- Shared Battle/rules on a 60 Hz Socket.IO server with 20 Hz snapshots, verified Supabase identity, input validation and reconnect grace.
+- Quick matches, public/private rooms, concurrent matches, tournaments and leagues; atomic/idempotent durable results and wins.
+- Supabase Auth, profile/history UI, RLS and service-only result RPCs.
+- Puyo hard drop removed throughout engine/CPU/network; garbage animation; Tetris HOLD on left, NEXT on right; callouts outside boards.
+- Fixed desktop vertical overflow and confirmation dialog being removed during competition withdrawal.
+- Applied both Supabase migrations; added server epoch fencing for overlapping deployments and atomic fixture/match creation.
+- Authenticated browser QA: quick match/reconnect/rematch/history, 4-person private room, completed tournament and all 6 league fixtures pass individually.
+- Authored Render configuration and GitHub CI. render.yaml passes the official JSON schema.
 
 ## In Progress
 
-- Browser regression and real Supabase/Render deployment.
-- Audit competition/disconnect edge cases and production service lifecycle.
+- Fixed-build online browser regression (development HMR interfered with the last suite). Local browser 9/9 and production CPU smoke pass.
+- Render provisioning and production configuration/QA.
 
 ## Remaining
 
-- Apply and verify production migrations/RLS; configure Auth URLs and service environment.
-- Browser QA for all online modes and reconnect handling.
-- Polish Puyo drop behavior/garbage animation and Tetris left HOLD layout.
-- Integration, regression, browser and production QA; deployment.
+- Create Render Free web service and static site from the tested feature branch.
+- Configure Supabase Auth production URL/redirects.
+- Run production multiplayer and local game smoke; verify logs and durable results.
+- Finish deployment/architecture/QA documentation and Git checkpoint.
 
 ## Architecture Decisions
 
-- Reuse src/core/Battle.ts and existing rule engines on the server.
-- Socket.IO: 60 Hz server simulation and 20 Hz public snapshots. Clients send actions only.
-- Supabase provides Auth and durable Postgres records; no gameplay over Realtime.
-- Exact allowed frontend origins. Server-only service key. No development auth bypass in production.
-- Existing CPU/local modes remain independent of online availability.
-- Existing source has no character-select feature to preserve.
+- Reuse src/core/Battle.ts/rules. Clients send input only; no client win/board authority.
+- Supabase Auth/Postgres; no gameplay over Supabase Realtime.
+- Exact frontend origins; service secret stays server-side. No production auth bypass.
+- One simulation instance per database. Restart cancels interrupted matches/competitions without awarding wins. Epoch fencing prevents an old deployment writing after replacement.
+- Render auto-deploy disabled deliberately: deploying the single server interrupts matches. Release explicitly.
+- Existing source had no character-select feature; none was removed.
 
 ## Quick Match State
 
-Implemented; manager/Socket.IO tests pass. Browser/production QA pending.
+Implemented. Unit/Socket.IO and authenticated Tetris browser flow pass; added equivalent Puyo browser flow.
 
 ## Room Match State
 
-Implemented; manager/Socket.IO tests pass. Browser/production QA pending.
+Implemented. 4/8/16 capacity, private codes, host controls/migration, concurrent 1v1; four real accounts/two simultaneous matches pass in browser.
 
 ## Tournament State
 
-Implemented; manager/Socket.IO tests pass. Browser/production QA pending.
+Implemented. 4/8 players, randomized brackets, ready gate, walkovers and champion. Unit tests and complete four-account browser tournament pass.
 
 ## League State
 
-Implemented; manager/Socket.IO tests pass. Browser/production QA pending.
+Implemented. 4/6/8 round robin, deterministic tie rules/shared rank, durable standings. Unit tests and complete four-account/six-match browser league pass. Earlier interrupted click timeout did not reproduce on rerun.
 
 ## Supabase State
 
-User created PuyoTeto project fmfaoxcxuaaeypzompyc in Tokyo on Free plan. Initial migration is being applied via SQL Editor. Provider tools not exposed; using browser UI and official SDK/CLI.
+PuyoTeto fmfaoxcxuaaeypzompyc, Tokyo, Free, ACTIVE_HEALTHY verified. Both migrations present; all five public tables have RLS and security advisor has no findings. Ignored .env.local/server/.env contain existing keys. Four confirmed QA accounts were provisioned through Auth admin API without sending mail; credentials in ignored .env.qa.json. Production Auth URLs and real email-delivery check remain.
 
 ## Render State
 
-Dashboard authenticated in My Workspace; no services yet. Blueprint preparation in progress.
+My Workspace tea-dasbdjojo6nc73b2kuig: no services as of latest read. render.yaml validates. Deploy Free Node service in Singapore plus static CDN site; no paid plan authorized/needed.
 
 ## GitHub State
 
-Remote: git@github.com:ei2537/PuyoTeto.git. main at 76fbf53 initially tracked only index.html; existing implementation was untracked. No force pushes. Branch feat/online-multiplayer tracks origin; baseline commit 55eb7fd pushed.
+Public ei2537/PuyoTeto, origin reachable and writable. feat/online-multiplayer tracks origin at 1d52680; main remains 76fbf53. No PR yet. No force pushes.
 
 ## Added Files
 
-IMPLEMENTATION_PROGRESS.md, shared/protocol.ts, server/{Hub,MatchRoom,competition,snapshot,store,app,index}.ts, src/online/{Auth,OnlineClient,OnlineUI}.ts and online.css, src/ui/PlayerView.ts, tests/{online,database}.test.ts, scripts/build-server.mjs, .env.example, server/.env.example, supabase/migrations/20260927100509_online_foundation.sql.
+shared/protocol.ts; server/{Hub,MatchRoom,competition,snapshot,store,app,index}.ts; src/online/{Auth,OnlineClient,OnlineUI}.ts and online.css; src/ui/PlayerView.ts; tests/{online,database}.test.ts; tests/browser/online.spec.ts; scripts/{build-server,qa-users}.mjs; .env.example; server/.env.example; two supabase/migrations; render.yaml; .github/workflows/ci.yml; this progress file.
 
 ## Modified Files
 
-.gitignore (protect secrets and generated server output; retain exclusions for supplied assets/reference site).
+package.json/package-lock.json; tsconfig.json; .gitignore; src/main.ts/style.css; PuyoGame/PuyoCPU; Renderer; browser/core/Puyo tests; playwright.config.ts; production smoke script. Existing baseline was checkpointed before these changes.
 
 ## Migrations Applied
 
-None.
+20260927100509_online_foundation; 20260927210840_secure_server_lifecycle. Remote migration history verified.
 
 ## Environment Variables Required
 
 Frontend: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY (publishable key accepted), VITE_GAME_SERVER_URL.
-Server: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, CLIENT_ORIGIN, PORT.
-Never put server secrets in VITE_* or commit .env files.
+Server: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, CLIENT_ORIGIN, PORT. Never expose the service secret via VITE_* or commit env files.
 
 ## Tests Passed
 
-2026-09-27: baseline 45/45; expanded suite 59/59 (actual embedded Postgres RLS tests + real Socket.IO transport). Frontend and server TypeScript/build checks pass.
+- 59/59 unit/logic/actual embedded Postgres RLS/real Socket.IO tests, latest full run 2026-09-28 JST.
+- Frontend and server TypeScript/build checks pass before current final regression.
+- Local browser 9/9 pass, including both desktop layouts. Production CPU smoke passes with zero console errors.
+- Real-account quick, private room, tournament, league browser scenarios pass individually.
+- Render Blueprint official JSON schema validation passes.
 
 ## Tests Failing
 
-None at baseline.
+League passes individually. Combined development-server run was interrupted by HMR; rerunning all online cases against fixed production preview on 4174.
 
 ## Known Issues
 
-- No physical gamepad connected for real hardware QA.
-- Render services not provisioned yet. Supabase initial schema application pending verification.
-- Updated browser tests and production signup/email confirmation QA pending.
+- Physical Xbox/generic PC controller hardware not available; simulated two-pad API tests only.
+- Render not deployed yet. User confirmed no SMTP provider/sending domain; general-public signup confirmation delivery remains blocked on SMTP configuration.
+- Free hosting cold starts and single-instance restart interruption are expected constraints.
 
 ## Next Exact Action
 
-Verify SQL Editor result, obtain existing project keys into ignored env files, run browser regression, audit server lifecycle, push tested checkpoint and deploy Blueprint.
+Collect current full browser/build/smoke test results, checkpoint and push. Stop the local Supabase-backed simulation on port 3001 BEFORE starting production. Provision Render with ignored secret transferred directly to its environment, configure Auth URLs, then run QA_BASE_URL production browser checks. Do not restart a local simulation pointed at the production Supabase project.

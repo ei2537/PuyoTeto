@@ -35,7 +35,7 @@ test.afterEach(async ({ page }) => {
 
 test('home, menu navigation, settings persistence and key conflicts', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: '積む。つなぐ。競う。' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'ぷよテト' })).toBeVisible();
   await page.screenshot({ path: 'test-results/home-1366.png' });
   await page.getByRole('button', { name: '操作設定', exact: true }).click();
   await page.locator('#key-0-left').click();
@@ -105,7 +105,11 @@ for (const kind of ['puyo', 'tetris'] as const)
         return b.state === 'finished' || b.games[0].phase === 'falling';
       });
       if (await page.evaluate(() => window.__STACK_DUEL__.battle.state === 'finished')) break;
-      await page.keyboard.press('Space');
+      if (kind === 'puyo') {
+        await page.keyboard.down('ArrowDown');
+        await page.waitForTimeout(820);
+        await page.keyboard.up('ArrowDown');
+      } else await page.keyboard.press('Space');
       await page.waitForTimeout(95);
     }
     await expect(page.getByRole('heading', { name: 'PLAYER 2 WIN' })).toBeVisible();
@@ -150,9 +154,8 @@ for (const kind of ['puyo', 'tetris'] as const)
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
         true,
       );
-      expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(
-        true,
-      );
+      const layout=await page.evaluate(()=>({height:innerHeight,scroll:document.documentElement.scrollHeight,regions:[...document.querySelectorAll('header,main,footer,.arena,.match-help')].map(el=>({name:el.className,top:el.getBoundingClientRect().top,bottom:el.getBoundingClientRect().bottom}))}));
+      expect(layout.scroll,JSON.stringify({width,...layout})).toBeLessThanOrEqual(height);
       await page.screenshot({ path: `test-results/${kind}-${width}.png` });
     }
   });
@@ -175,7 +178,9 @@ test('puyo: real chain animation, attack delivery and opposing garbage', async (
   await expect(page.locator('#callout-0')).toHaveText('2 CHAIN');
   await expect(page.locator('#garbage-1')).toHaveText('5');
   await page.waitForTimeout(750);
-  await page.keyboard.press('w');
+  await page.keyboard.down('s');
+  await page.waitForTimeout(850);
+  await page.keyboard.up('s');
   await page.waitForFunction(
     () =>
       window.__STACK_DUEL__.battle.games[1].board.flat().filter((v: number) => v === 5).length ===

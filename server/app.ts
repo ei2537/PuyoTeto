@@ -22,13 +22,14 @@ export async function createGameServer(options: Options) {
   // Fail closed when migrations/DB are unavailable. Recovery completes before accepting players.
   await options.store.recover();
   let closing = false;
+  let databaseHealthy = true;
   const http = createServer((req, res) => {
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('X-Content-Type-Options', 'nosniff');
     if (req.url === '/health') {
-      res.statusCode = closing ? 503 : 200;
-      res.end(JSON.stringify({ ok: !closing, protocol: PROTOCOL_VERSION }));
+      res.statusCode = closing || !databaseHealthy ? 503 : 200;
+      res.end(JSON.stringify({ ok: !closing && databaseHealthy, protocol: PROTOCOL_VERSION }));
     } else {
       res.statusCode = 404;
       res.end('{"error":"Not found"}');
@@ -52,6 +53,10 @@ export async function createGameServer(options: Options) {
   });
   const attempts = new Map<string, { count: number; at: number }>();
   io.use(async (socket, next) => {
+    if (closing) {
+      next(new Error('サーバーを更新しています。再接続してください。'));
+      return;
+    }
     const ip = socket.handshake.address;
     const now = Date.now(),
       rate = attempts.get(ip);
@@ -93,6 +98,10 @@ export async function createGameServer(options: Options) {
       windowAt = Date.now();
     socket.on('command', async (raw, reply) => {
       if (typeof reply !== 'function') return;
+      if (closing) {
+        reply({ ok: false, error: 'サーバーを更新しています。' });
+        return;
+      }
       if (socketByUser.get(id) !== socket.id) {
         reply({ ok: false, error: '別のタブに接続が移りました。' });
         return;
@@ -137,6 +146,7 @@ export async function createGameServer(options: Options) {
     }
   });
   const timers: NodeJS.Timeout[] = [];
+  let checkingEpoch = false;
   if (options.startLoops !== false) {
     let last = performance.now(),
       accumulator = 0;
@@ -146,7 +156,7 @@ export async function createGameServer(options: Options) {
         accumulator += Math.min(250, now - last);
         last = now;
         while (accumulator >= 1000 / 60) {
-          hub.step(1000 / 60);
+          if (!closing) hub.step(1000 / 60);
           accumulator -= 1000 / 60;
         }
       }, 1000 / 60),
@@ -163,6 +173,27 @@ export async function createGameServer(options: Options) {
         hub.maintain();
       }, 1000),
     );
+    if (options.store.isCurrent)
+      timers.push(
+        setInterval(async () => {
+          if (checkingEpoch || closing) return;
+          checkingEpoch = true;
+          try {
+            const current = await options.store.isCurrent!();
+            databaseHealthy = current;
+            if (!current) {
+              closing = true;
+              timers.forEach(clearInterval);
+              io.emit('notice', 'サーバーを更新しました。進行中の試合は中断として記録されます。');
+              io.disconnectSockets(true);
+            }
+          } catch {
+            databaseHealthy = false;
+          } finally {
+            checkingEpoch = false;
+          }
+        }, 3000),
+      );
   }
   return {
     http,

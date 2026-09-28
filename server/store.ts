@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { randomUUID } from 'node:crypto';
 import type { FinishReason, Identity, LobbyView, MatchType, Profile } from '../shared/protocol';
 import type { GameKind } from '../src/core/types';
 export interface MatchRecord {
@@ -10,7 +11,8 @@ export interface MatchRecord {
 }
 export interface Store {
   recover(): Promise<void>;
-  createMatch(match: MatchRecord): Promise<void>;
+  createMatch(match: MatchRecord, competition?: LobbyView | null): Promise<void>;
+  isCurrent?(): Promise<boolean>;
   saveCompetition(lobby: LobbyView): Promise<void>;
   finishMatch(
     match: MatchRecord,
@@ -24,6 +26,7 @@ function check(error: { message: string } | null) {
 }
 export class SupabaseStore implements Store {
   client: SupabaseClient;
+  readonly epoch = randomUUID();
   constructor(url: string, key: string) {
     this.client = createClient(url, key, {
       auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
@@ -45,25 +48,28 @@ export class SupabaseStore implements Store {
     return { ...profile, expiresAt: payload.exp * 1000 };
   }
   async recover() {
-    const { error } = await this.client.rpc('recover_interrupted');
+    const { error } = await this.client.rpc('begin_server', { p_epoch: this.epoch });
     check(error);
   }
-  async createMatch(m: MatchRecord) {
-    const { error } = await this.client
-      .from('matches')
-      .insert({
-        id: m.id,
-        game_type: m.game,
-        match_type: m.type,
-        competition_id: m.competitionId,
-        player1_id: m.players[0].id,
-        player2_id: m.players[1].id,
-      });
+  async isCurrent() {
+    const { data, error } = await this.client.rpc('check_server', { p_epoch: this.epoch });
+    check(error);
+    return data === true;
+  }
+  async createMatch(m: MatchRecord, competition: LobbyView | null = null) {
+    const { error } = await this.client.rpc('server_create_match', {
+      p_epoch: this.epoch,
+      p_match: m,
+      p_competition: competition,
+    });
     check(error);
   }
   async saveCompetition(lobby: LobbyView) {
     if (lobby.category === 'room') return;
-    const { error } = await this.client.rpc('save_competition', { p_state: lobby });
+    const { error } = await this.client.rpc('server_save_competition', {
+      p_epoch: this.epoch,
+      p_state: lobby,
+    });
     check(error);
   }
   async finishMatch(
@@ -72,7 +78,8 @@ export class SupabaseStore implements Store {
     reason: FinishReason,
     competition: LobbyView | null,
   ) {
-    const { error } = await this.client.rpc('finalize_match', {
+    const { error } = await this.client.rpc('server_finish_match', {
+      p_epoch: this.epoch,
       p_id: m.id,
       p_winner: winner,
       p_reason: reason,

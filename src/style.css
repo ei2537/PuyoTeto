@@ -846,7 +846,7 @@ main:focus {
   outline: none;
 }
 .arena {
-  --board-height: min(calc(100dvh - 340px), 660px);
+  --board-height: min(calc(100dvh - 360px), 660px);
 }
 .rail {
   display: flex;
@@ -903,7 +903,7 @@ main:focus {
     margin-bottom: 25px;
   }
   .arena {
-    --board-height: min(calc(100dvh - 300px), 700px);
+    --board-height: min(calc(100dvh - 350px), 660px);
   }
 }
 @media (max-height: 760px) and (min-width: 701px) {
@@ -930,7 +930,7 @@ main:focus {
     margin-bottom: 10px;
   }
   .arena {
-    --board-height: min(calc(100dvh - 320px), 660px);
+    --board-height: min(calc(100dvh - 350px), 660px);
   }
   .match-bar {
     margin-bottom: 13px;
