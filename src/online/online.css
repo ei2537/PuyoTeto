@@ -219,8 +219,12 @@ details summary {
   border-bottom: 1px solid var(--border);
   font-size: 12px;
 }
+main:has(.online-arena) {
+  padding: 18px 20px 12px;
+  align-items: flex-start;
+}
 .online-arena {
-  --board-height: min(calc(100dvh - 428px), 620px);
+  --board-height: min(calc(100dvh - 420px), 620px);
   max-width: 1200px;
   margin: auto;
 }

@@ -85,21 +85,33 @@ async function create(
 }
 test.afterEach(async () => {
   // Use normal application commands to withdraw; closed browsers alone intentionally have a grace period.
+  const cleanupErrors: string[] = [];
   for (const context of contexts) {
     const page = context.pages()[0];
     if (!page || page.isClosed()) continue;
     try {
-      if (await page.locator('#online-surrender').count()) await surrender(page);
+      await page.bringToFront();
+      // History is an account view over the still-active lobby. Return before leaving it.
+      if (await page.locator('#profile-form').count()) await page.locator('#online-back').click();
+      if (
+        (await page.locator('#online-surrender').count()) &&
+        snapshots.get(page)?.state !== 'finished'
+      )
+        await surrender(page);
       await returnLobby(page);
       if (await page.locator('#leave-lobby').count()) {
         await page.locator('#leave-lobby').click();
         if (await page.locator('#confirm-yes').count()) await page.locator('#confirm-yes').click();
+        await expect(page.locator('#quick')).toBeVisible();
       }
-    } catch {}
+    } catch (error) {
+      cleanupErrors.push(error instanceof Error ? error.message : String(error));
+    }
   }
   await Promise.all(contexts.map((c) => c.close()));
   contexts = [];
   snapshots.clear();
+  expect(cleanupErrors).toEqual([]);
 });
 for (const kind of ['puyo', 'tetris'] as const)
   test(`online: ${kind} login, quick match, input, reconnect, saved result and rematch`, async ({

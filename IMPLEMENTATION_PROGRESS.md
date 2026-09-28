@@ -18,7 +18,7 @@ Preserve the local games; finish and deploy authenticated authoritative online m
 
 ## In Progress
 
-- Fixed-build online browser regression (development HMR interfered with the last suite). Local browser 9/9 and production CPU smoke pass.
+- Render deployment and production verification. Local browser 9/9, fixed-build online 5/5 and production CPU smoke pass.
 - Render provisioning and production configuration/QA.
 
 ## Remaining
@@ -63,7 +63,7 @@ My Workspace tea-dasbdjojo6nc73b2kuig: no services as of latest read. render.yam
 
 ## GitHub State
 
-Public ei2537/PuyoTeto, origin reachable and writable. feat/online-multiplayer tracks origin at 1d52680; main remains 76fbf53. No PR yet. No force pushes.
+Public ei2537/PuyoTeto, origin reachable and writable. feat/online-multiplayer tracks origin; checkpoint f460694 pushed; main remains 76fbf53. No PR yet. No force pushes.
 
 ## Added Files
 
@@ -92,7 +92,7 @@ Server: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, CLIENT_ORIGIN, PORT. Never expo
 
 ## Tests Failing
 
-League passes individually. Combined development-server run was interrupted by HMR; rerunning all online cases against fixed production preview on 4174.
+Fixed production preview: all 5 online browser cases pass in one run. Cleanup now leaves the competition from the account-history screen and waits for server acknowledgement. GitHub Linux CI found an emulated-pad neutral-frame race; test corrected, CI rerun pending.
 
 ## Known Issues
 

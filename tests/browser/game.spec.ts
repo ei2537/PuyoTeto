@@ -154,8 +154,18 @@ for (const kind of ['puyo', 'tetris'] as const)
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
         true,
       );
-      const layout=await page.evaluate(()=>({height:innerHeight,scroll:document.documentElement.scrollHeight,regions:[...document.querySelectorAll('header,main,footer,.arena,.match-help')].map(el=>({name:el.className,top:el.getBoundingClientRect().top,bottom:el.getBoundingClientRect().bottom}))}));
-      expect(layout.scroll,JSON.stringify({width,...layout})).toBeLessThanOrEqual(height);
+      const layout = await page.evaluate(() => ({
+        height: innerHeight,
+        scroll: document.documentElement.scrollHeight,
+        regions: [...document.querySelectorAll('header,main,footer,.arena,.match-help')].map(
+          (el) => ({
+            name: el.className,
+            top: el.getBoundingClientRect().top,
+            bottom: el.getBoundingClientRect().bottom,
+          }),
+        ),
+      }));
+      expect(layout.scroll, JSON.stringify({ width, ...layout })).toBeLessThanOrEqual(height);
       await page.screenshot({ path: `test-results/${kind}-${width}.png` });
     }
   });
@@ -255,6 +265,13 @@ test('controller: menu navigation, two device assignment, remap, stick, pause an
   await expect(page.locator('#device-1')).toHaveValue('1');
   await page.getByRole('button', { name: '操作設定を変更' }).click();
   await page.locator('#pad-0-rotateLeft').click();
+  // Binding capture waits for a neutral pad sample before accepting a new press.
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      }),
+  );
   await padButton(page, 0, 5);
   await expect(page.locator('#pad-0-rotateLeft')).toHaveText('B5');
   await page.getByRole('button', { name: '完了', exact: true }).click();
