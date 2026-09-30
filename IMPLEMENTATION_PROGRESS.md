@@ -15,16 +15,16 @@ Preserve the local games; finish and deploy authenticated authoritative online m
 - Applied both Supabase migrations; added server epoch fencing for overlapping deployments and atomic fixture/match creation.
 - Authenticated browser QA: quick match/reconnect/rematch/history, 4-person private room, completed tournament and all 6 league fixtures pass individually.
 - Authored Render configuration and GitHub CI. render.yaml passes the official JSON schema.
+- Deployed both Render services; real production online browser 5/5 and CPU smoke pass. Health check and static headers configured.
+- Brevo SMTP configured. User completed signup/email confirmation; Supabase shows one new confirmed/signed-in user and the public site shows profile plus connected online menu.
 
 ## In Progress
 
-- Real signup email delivery and confirmation-link check with the user's own account. Brevo phone verification and SMTP key creation are complete; user entered the key directly into Supabase and saved it.
-- Final deployment/QA documentation checkpoint. Existing game implementations were preserved.
+- Final documentation/email-verification checkpoint and push. Existing game implementations were preserved.
 
 ## Remaining
 
-- Confirm actual signup email receipt and the confirmation link returning to the production site.
-- Finish documentation and Git checkpoint after the email check.
+- No required game/deployment work remains. Final Git checkpoint verification only. Physical controllers/other browsers and future enhancements remain outside this verified scope.
 
 ## Architecture Decisions
 
@@ -55,7 +55,7 @@ Implemented. 4/6/8 round robin, deterministic tie rules/shared rank, durable sta
 
 PuyoTeto fmfaoxcxuaaeypzompyc, Tokyo, Free, ACTIVE_HEALTHY verified 2026-09-30 JST. Both migrations present; all five public tables have RLS. Security advisor reports only leaked-password protection disabled (Auth setting); no RLS findings. Ignored .env.local/server/.env contain existing keys. Four confirmed QA accounts were provisioned through Auth admin API without sending mail; credentials in ignored .env.qa.json.
 
-Site URL and the sole allowed redirect URL are https://puyoteto-online.onrender.com. Custom SMTP enabled and persisted: Brevo, smtp-relay.brevo.com:587, sender name PuyoTeto, verified sender. The user created and entered the SMTP key directly; it is not in chat, repository, or Render variables. Minimum per-user interval remains 60 seconds. Real receipt/confirmation is pending user verification. Brevo connector confirms relay enabled and Free plan.
+Site URL and the sole allowed redirect URL are https://puyoteto-online.onrender.com. Custom SMTP enabled and persisted: Brevo, smtp-relay.brevo.com:587, sender name PuyoTeto, verified sender. The user created and entered the SMTP key directly; it is not in chat, repository, or Render variables. Minimum per-user interval remains 60 seconds. Brevo connector confirms relay enabled and Free plan. After the user completed signup/email confirmation, Supabase shows one new confirmed and signed-in user created today; the public site shows their profile and connected online menu. No Auth admin confirmation was used for this user.
 
 ## Render State
 
@@ -71,7 +71,7 @@ My Workspace tea-dasbdjojo6nc73b2kuig. Both services deployed and LIVE since 202
 
 ## GitHub State
 
-Public ei2537/PuyoTeto, origin reachable and writable. feat/online-multiplayer tracks origin; checkpoint 1d2cb59 pushed; main remains 76fbf53. Latest deployed-code CI succeeded: https://github.com/ei2537/PuyoTeto/actions/runs/36369889183. No PR yet. No force pushes.
+Public ei2537/PuyoTeto, origin reachable and writable. feat/online-multiplayer tracks origin; game checkpoint 1d2cb59 and production QA/Brevo docs checkpoint fc7074b pushed; main remains 76fbf53. Deployed-code CI succeeded: https://github.com/ei2537/PuyoTeto/actions/runs/36369889183. Final email-verification record checkpoint follows fc7074b. No PR yet. No force pushes.
 
 ## Added Files
 
@@ -98,6 +98,7 @@ Server: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, CLIENT_ORIGIN, PORT. Never expo
 - 2026-09-30: real production URL, 5/5 online browser scenarios pass in one run (2 minutes). Both games' quick match/input/reload/reconnect/saved result/rematch/history; private room with four users and two simultaneous games; completed tournament and league.
 - Production DB confirms 15 completed QA matches from that run, finished tournament with 3 fixtures/champion and finished league with 6 fixtures/champion. QA used surrender to finish online fixtures promptly; natural top-out is covered by local browser and shared-rule tests.
 - 2026-09-30: actual Render static site CPU smoke succeeds for both games: Worker/player input/Canvas/HUD, console errors 0, development hook absent. QA_BASE_URL support added to the smoke script to reproduce this without starting a local simulation.
+- Documentation/QA-script checkpoint fc7074b also passes all GitHub CI checks: https://github.com/ei2537/PuyoTeto/actions/runs/36652706236.
 - Render Blueprint official JSON schema validation passes.
 
 ## Tests Failing
@@ -107,10 +108,10 @@ None currently. Emulated-pad neutral-frame race was corrected in 1d2cb59; GitHub
 ## Known Issues
 
 - Physical Xbox/generic PC controller hardware not available; simulated two-pad API tests only.
-- Actual SMTP receipt/confirmation-link test is in progress. Brevo setup and Supabase SMTP saving are complete; a custom sending domain has not been configured.
+- Brevo works with the verified sender; a custom sending domain has not been configured.
 - Supabase leaked-password protection is disabled; advisor remediation: https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection. No paid upgrade made.
 - Free hosting cold starts and single-instance restart interruption are expected constraints.
 
 ## Next Exact Action
 
-Wait for the user's real signup email confirmation, verify profile creation/login without exposing credentials, and update the final email-verification status. Documentation and QA-script checkpoint is being saved separately; preserve the deployed game SHA unless application code changes. Do not start a local simulation pointed at the production Supabase project.
+Verify final documentation checkpoint is pushed and its GitHub CI status. No production deployment needed for these documentation/QA-script changes. For later application changes, keep auto-deploy OFF and deliberately release after tests. Do not start a local simulation pointed at the production Supabase project.

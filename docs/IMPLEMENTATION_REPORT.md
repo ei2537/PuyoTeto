@@ -4,7 +4,7 @@
 
 ## 1. Completed Features
 
-CPU・LOCAL 2P・キーボード・Gamepad・キー設定を維持。メール/パスワード認証、公開名と勝数、オンライン対戦、公開/非公開ルーム、大会、リーグ、履歴を実装しRenderに公開しています。メール確認は有効で、Brevo SMTPを設定済みです。実受信と確認リンクはユーザーによる最終検証待ちです。
+CPU・LOCAL 2P・キーボード・Gamepad・キー設定を維持。メール/パスワード認証、公開名と勝数、オンライン対戦、公開/非公開ルーム、大会、リーグ、履歴を実装しRenderに公開しています。メール確認は有効で、Brevo SMTPを設定済み。ユーザー操作による新規登録・メール確認・ログイン・オンライン接続まで確認しました。
 
 ぷよのハードドロップを入力・CPU・ルール・ネットワークから除去。おじゃま落下と着地表現、盤面外の連鎖表示を追加。テトリスのHOLDは左、NEXTは右。既存コードにキャラクター選択画面は存在せず、削除していません。
 
@@ -114,7 +114,7 @@ Supabase publishable/anon keyは公開可能。service secretはNodeサービス
 - `f460694`：保存/セキュリティ/epoch/QA/CI/Render構成。
 - `1d2cb59`：表示領域とQAの修正。現在の本番コード。
 
-この報告・実URL QA支援の変更は別checkpointとして保存します。自動デプロイOFFのため文書pushで進行中対戦を中断しません。force pushやmainへの直接統合は行っていません。
+`fc7074b`でこの報告・実URL QA支援・Brevo設定を保存しpush済み。メール確認成功の記録はその後の文書checkpointに含みます。自動デプロイOFFのため文書pushで進行中対戦を中断しません。force pushやmainへの直接統合は行っていません。
 
 ## 11. Tests
 
@@ -123,6 +123,7 @@ Supabase publishable/anon keyは公開可能。service secretはNodeサービス
 - 5/5：本番オンラインブラウザ。両ゲームクイック・4人部屋・大会・リーグ。
 - Frontend/serverの型チェックとbuild成功。CPU production smokeは固定previewとRender実サイト双方で成功。
 - ゲームコードのGitHub Linux CI成功：[run 36369889183](https://github.com/ei2537/PuyoTeto/actions/runs/36369889183)。
+- 公開URL QAスクリプト変更を含む `fc7074b` のGitHub CIも全項目成功：[run 36652706236](https://github.com/ei2537/PuyoTeto/actions/runs/36652706236)。
 
 ## 12. Production Verification
 
@@ -130,7 +131,7 @@ Supabase publishable/anon keyは公開可能。service secretはNodeサービス
 
 公開CPU戦のWorker・キーボード・盤面・HUDが両ゲームで動作。コンソール/ページ例外0、開発専用フック不在。健康チェックは200・`{"ok":true,"protocol":1}`、最近のRenderアプリケーションエラーログ0。Static Siteヘッダーも実応答で確認。
 
-ユーザー自身の新規登録メールの受信・リンク確認は最終検証待ちです。QAアカウントは管理APIで確認済みとして作成したため、この5ケースだけでSMTP実配送を検証したことにはしていません。
+ユーザー自身が実サイトで新規登録・メール確認を実施。Supabaseの新規ユーザーがメール確認済み/ログイン済みであること、公開サイトのプロフィールとオンライン「接続済み」を確認しました。このユーザーの確認に管理APIは使っていません。メール本文・確認リンクの秘密値は読み取っていません。自動QA用の4アカウントはこれとは別に管理APIで確認済みとして作成したものです。
 
 ## 13. Known Issues
 
@@ -143,7 +144,7 @@ Supabase publishable/anon keyは公開可能。service secretはNodeサービス
 
 ## 14. Blockers
 
-ゲーム実装・本番対戦・結果保存にはなし。アカウント公開の最終確認はユーザー自身の確認メール受信・リンク検証待ちです。
+None。
 
 ## 15. Future Improvements
 

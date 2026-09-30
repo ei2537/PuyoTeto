@@ -46,7 +46,10 @@
 - 実URLのCPU smokeも両ゲーム成功。Worker・キーボード・Canvas・HUD・本番フック不在、ページ/コンソールエラー0。`QA_BASE_URL`で再現可能。
 - `/health` は200・`{"ok":true,"protocol":1}`。RenderのHealth Check Pathも `/health` に保存・MCPで確認。最近のアプリケーションエラーログ0。
 - 最新ゲームコードのGitHub Linux CI成功：[workflow run](https://github.com/ei2537/PuyoTeto/actions/runs/36369889183)。模擬Pad再割り当ての中立フレーム待ちを補正し、以前の失敗は解消。
+- 本番QA/SMTP設定記録と公開URL対応のsmokeスクリプトを含む `fc7074b` も、GitHubの全テスト・build・ローカルブラウザ・CPU smokeに成功：[workflow run](https://github.com/ei2537/PuyoTeto/actions/runs/36652706236)。
 - Supabase Site URL/唯一の許可redirectを本番originに設定済み。メール確認は維持。
 - Brevoの電話番号確認とSMTPキー作成をユーザーが実施し、キーをSupabaseに直接入力・保存。Brevo relay有効、Supabase custom SMTP有効を確認。秘密キーはチャット/Git/クライアント/Renderに保存していない。
 
-未完了：ユーザー自身による新規登録メールの実受信・リンク確認。独自送信ドメインは未設定。Supabase security advisorは漏洩パスワード保護が未有効の警告1件（RLS指摘なし）。[設定手順](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection)。物理Pad/Safari/Firefoxの未確認範囲は上記のとおりです。
+- ユーザーが実サイトで登録・メール確認を実施。その後、Supabaseに本日作成の新規ユーザー1件・メール確認済み1件・ログイン済み1件を確認し、公開サイトでもプロフィール表示とオンライン「接続済み」を確認。実ユーザーを管理APIで確認済みにする回避策は使用していません。メール本文や確認リンクの秘密値は取得していません。
+
+必要な本番検証の未完了項目はありません。独自送信ドメインは未設定。Supabase security advisorは漏洩パスワード保護が未有効の警告1件（RLS指摘なし）。[設定手順](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection)。物理Pad/Safari/Firefoxの未確認範囲は上記のとおりです。
