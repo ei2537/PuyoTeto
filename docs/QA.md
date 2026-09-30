@@ -38,4 +38,15 @@
 - 大会退出の確認ダイアログが再描画で消える問題を修正。ローカル/オンラインとも縦レイアウトを調整。
 - `render.yaml`：公式JSON schemaに適合。`off`はYAML 1.1でboolean解釈されないよう文字列で記載。
 
-未完了：Render上の実URL確認・本番ブラウザQA。SMTPのサービス・送信ドメインはユーザー未所持と確認済み。Supabase標準送信ではチーム外の新規登録確認メールを送信できません。メール確認は無効化せず、設定待ちとして扱います。
+## 本番検証（2026-09-30 JST）
+
+- Render Static Site `https://puyoteto-online.onrender.com` と Free Node `https://puyoteto-game.onrender.com` がLIVE。デプロイSHA `1d2cb59`。両サービスの自動デプロイOFF。
+- 実URLでオンラインブラウザ5/5成功（2分）。ぷよ・テトリスのログイン/クイック/入力/リロード再接続/保存/再戦/履歴、4人非公開ルームで同時2試合、大会完走、リーグ全6試合。
+- Supabaseに当該実行の15試合が保存済み。大会はfinished・3カード・優勝者あり、リーグはfinished・6カード・優勝者あり。オンラインQAではカードを投了で終了。自然トップアウトは共有ゲームロジックとローカルブラウザテストで検証。
+- 実URLのCPU smokeも両ゲーム成功。Worker・キーボード・Canvas・HUD・本番フック不在、ページ/コンソールエラー0。`QA_BASE_URL`で再現可能。
+- `/health` は200・`{"ok":true,"protocol":1}`。RenderのHealth Check Pathも `/health` に保存・MCPで確認。最近のアプリケーションエラーログ0。
+- 最新ゲームコードのGitHub Linux CI成功：[workflow run](https://github.com/ei2537/PuyoTeto/actions/runs/36369889183)。模擬Pad再割り当ての中立フレーム待ちを補正し、以前の失敗は解消。
+- Supabase Site URL/唯一の許可redirectを本番originに設定済み。メール確認は維持。
+- Brevoの電話番号確認とSMTPキー作成をユーザーが実施し、キーをSupabaseに直接入力・保存。Brevo relay有効、Supabase custom SMTP有効を確認。秘密キーはチャット/Git/クライアント/Renderに保存していない。
+
+未完了：ユーザー自身による新規登録メールの実受信・リンク確認。独自送信ドメインは未設定。Supabase security advisorは漏洩パスワード保護が未有効の警告1件（RLS指摘なし）。[設定手順](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection)。物理Pad/Safari/Firefoxの未確認範囲は上記のとおりです。

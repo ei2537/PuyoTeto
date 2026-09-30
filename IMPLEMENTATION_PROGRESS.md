@@ -18,15 +18,13 @@ Preserve the local games; finish and deploy authenticated authoritative online m
 
 ## In Progress
 
-- Render deployment and production verification. Local browser 9/9, fixed-build online 5/5 and production CPU smoke pass.
-- Render provisioning and production configuration/QA.
+- Real signup email delivery and confirmation-link check with the user's own account. Brevo phone verification and SMTP key creation are complete; user entered the key directly into Supabase and saved it.
+- Final deployment/QA documentation checkpoint. Existing game implementations were preserved.
 
 ## Remaining
 
-- Create Render Free web service and static site from the tested feature branch.
-- Configure Supabase Auth production URL/redirects.
-- Run production multiplayer and local game smoke; verify logs and durable results.
-- Finish deployment/architecture/QA documentation and Git checkpoint.
+- Confirm actual signup email receipt and the confirmation link returning to the production site.
+- Finish documentation and Git checkpoint after the email check.
 
 ## Architecture Decisions
 
@@ -55,15 +53,25 @@ Implemented. 4/6/8 round robin, deterministic tie rules/shared rank, durable sta
 
 ## Supabase State
 
-PuyoTeto fmfaoxcxuaaeypzompyc, Tokyo, Free, ACTIVE_HEALTHY verified. Both migrations present; all five public tables have RLS and security advisor has no findings. Ignored .env.local/server/.env contain existing keys. Four confirmed QA accounts were provisioned through Auth admin API without sending mail; credentials in ignored .env.qa.json. Production Auth URLs and real email-delivery check remain.
+PuyoTeto fmfaoxcxuaaeypzompyc, Tokyo, Free, ACTIVE_HEALTHY verified 2026-09-30 JST. Both migrations present; all five public tables have RLS. Security advisor reports only leaked-password protection disabled (Auth setting); no RLS findings. Ignored .env.local/server/.env contain existing keys. Four confirmed QA accounts were provisioned through Auth admin API without sending mail; credentials in ignored .env.qa.json.
+
+Site URL and the sole allowed redirect URL are https://puyoteto-online.onrender.com. Custom SMTP enabled and persisted: Brevo, smtp-relay.brevo.com:587, sender name PuyoTeto, verified sender. The user created and entered the SMTP key directly; it is not in chat, repository, or Render variables. Minimum per-user interval remains 60 seconds. Real receipt/confirmation is pending user verification. Brevo connector confirms relay enabled and Free plan.
 
 ## Render State
 
-My Workspace tea-dasbdjojo6nc73b2kuig: no services as of latest read. render.yaml validates. Deploy Free Node service in Singapore plus static CDN site; no paid plan authorized/needed.
+My Workspace tea-dasbdjojo6nc73b2kuig. Both services deployed and LIVE since 2026-09-28, code SHA 1d2cb59cef1422878f472c43d297c343408c4d75. Verified again 2026-09-30 JST:
+
+- Static Site puyoteto-online, srv-dast1abbc2fs73a81u3g: https://puyoteto-online.onrender.com
+- Free Node service puyoteto-game, srv-dast17bbc2fs73a81ju0, Singapore: https://puyoteto-game.onrender.com
+- CLIENT_ORIGIN matches the static site exactly; frontend server URL points to the live Node service. Node 24.14.1. Server secret stays in server env only.
+- Health Check Path /health saved in Render Dashboard and confirmed by MCP. Public endpoint returns {ok:true,protocol:1}. Recent application error logs are empty.
+- Auto-deploy OFF for both. No deployment is needed for documentation/QA-script-only changes.
+- Services were created separately through MCP; render.yaml is a validated reproducible reference, not an attached Blueprint. Static headers saved in Dashboard and confirmed on real HTTP 200 response: nosniff, strict-origin-when-cross-origin, index.html no-cache.
+- No paid resources created. Do not run a local simulation against this production Supabase database.
 
 ## GitHub State
 
-Public ei2537/PuyoTeto, origin reachable and writable. feat/online-multiplayer tracks origin; checkpoint f460694 pushed; main remains 76fbf53. No PR yet. No force pushes.
+Public ei2537/PuyoTeto, origin reachable and writable. feat/online-multiplayer tracks origin; checkpoint 1d2cb59 pushed; main remains 76fbf53. Latest deployed-code CI succeeded: https://github.com/ei2537/PuyoTeto/actions/runs/36369889183. No PR yet. No force pushes.
 
 ## Added Files
 
@@ -87,19 +95,22 @@ Server: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, CLIENT_ORIGIN, PORT. Never expo
 - 59/59 unit/logic/actual embedded Postgres RLS/real Socket.IO tests, latest full run 2026-09-28 JST.
 - Frontend and server TypeScript/build checks pass before current final regression.
 - Local browser 9/9 pass, including both desktop layouts. Production CPU smoke passes with zero console errors.
-- Real-account quick, private room, tournament, league browser scenarios pass individually.
+- 2026-09-30: real production URL, 5/5 online browser scenarios pass in one run (2 minutes). Both games' quick match/input/reload/reconnect/saved result/rematch/history; private room with four users and two simultaneous games; completed tournament and league.
+- Production DB confirms 15 completed QA matches from that run, finished tournament with 3 fixtures/champion and finished league with 6 fixtures/champion. QA used surrender to finish online fixtures promptly; natural top-out is covered by local browser and shared-rule tests.
+- 2026-09-30: actual Render static site CPU smoke succeeds for both games: Worker/player input/Canvas/HUD, console errors 0, development hook absent. QA_BASE_URL support added to the smoke script to reproduce this without starting a local simulation.
 - Render Blueprint official JSON schema validation passes.
 
 ## Tests Failing
 
-Fixed production preview: all 5 online browser cases pass in one run. Cleanup now leaves the competition from the account-history screen and waits for server acknowledgement. GitHub Linux CI found an emulated-pad neutral-frame race; test corrected, CI rerun pending.
+None currently. Emulated-pad neutral-frame race was corrected in 1d2cb59; GitHub Linux CI passes. Cleanup leaves the competition from the account-history screen and waits for server acknowledgement.
 
 ## Known Issues
 
 - Physical Xbox/generic PC controller hardware not available; simulated two-pad API tests only.
-- Render not deployed yet. User confirmed no SMTP provider/sending domain; general-public signup confirmation delivery remains blocked on SMTP configuration.
+- Actual SMTP receipt/confirmation-link test is in progress. Brevo setup and Supabase SMTP saving are complete; a custom sending domain has not been configured.
+- Supabase leaked-password protection is disabled; advisor remediation: https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection. No paid upgrade made.
 - Free hosting cold starts and single-instance restart interruption are expected constraints.
 
 ## Next Exact Action
 
-Collect current full browser/build/smoke test results, checkpoint and push. Stop the local Supabase-backed simulation on port 3001 BEFORE starting production. Provision Render with ignored secret transferred directly to its environment, configure Auth URLs, then run QA_BASE_URL production browser checks. Do not restart a local simulation pointed at the production Supabase project.
+Wait for the user's real signup email confirmation, verify profile creation/login without exposing credentials, and update the final email-verification status. Documentation and QA-script checkpoint is being saved separately; preserve the deployed game SHA unless application code changes. Do not start a local simulation pointed at the production Supabase project.

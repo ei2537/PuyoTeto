@@ -1,20 +1,23 @@
 import { chromium } from '@playwright/test';
 import { spawn } from 'node:child_process';
 import assert from 'node:assert/strict';
-const origin = 'http://127.0.0.1:4174';
-const server = spawn(
-  process.execPath,
-  [
-    'node_modules/vite/bin/vite.js',
-    'preview',
-    '--host',
-    '127.0.0.1',
-    '--port',
-    '4174',
-    '--strictPort',
-  ],
-  { stdio: 'pipe', windowsHide: true },
-);
+import { mkdir } from 'node:fs/promises';
+const origin = process.env.QA_BASE_URL || 'http://127.0.0.1:4174';
+const server = process.env.QA_BASE_URL
+  ? null
+  : spawn(
+      process.execPath,
+      [
+        'node_modules/vite/bin/vite.js',
+        'preview',
+        '--host',
+        '127.0.0.1',
+        '--port',
+        '4174',
+        '--strictPort',
+      ],
+      { stdio: 'pipe', windowsHide: true },
+    );
 let browser;
 try {
   let ready = false;
@@ -57,11 +60,15 @@ try {
     await page.waitForFunction(
       () => Number(document.querySelector('#score-0')?.textContent.replaceAll(',', '')) > 0,
     );
+    if (process.env.QA_SCREENSHOT_DIR) {
+      await mkdir(process.env.QA_SCREENSHOT_DIR, { recursive: true });
+      await page.screenshot({ path: `${process.env.QA_SCREENSHOT_DIR}/production-${kind}.png` });
+    }
     console.log(`Production ${kind}: CPU Worker, player input, canvas and HUD OK`);
   }
   assert.deepEqual(errors, []);
   console.log('Production console: 0 errors; development hook absent');
 } finally {
   await browser?.close();
-  server.kill();
+  server?.kill();
 }

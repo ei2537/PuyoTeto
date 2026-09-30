@@ -52,7 +52,24 @@ CPU・LOCAL 2Pだけなら環境変数・サーバー・Supabaseは不要です�
 - 全公開テーブルにRLS。一般ユーザーは勝数・試合結果・大会を書き込めません。
 - privateスキーマのepochとサービス専用RPCにより、結果の二重保存と旧プロセスの書き込みを防止します。
 
-新規導入時はAuthのSite URLとRedirect URLsを実際のフロントエンドURLに設定してください。開発用にはlocalhostの正確なoriginも登録します。Supabase標準メール送信には宛先や送信数の制限があるため、一般公開の登録受付には独自SMTPの設定が必要になる場合があります。確認メールを無効にする回避策は採用していません。
+本番のSite URLとRedirect URLsはともに `https://puyoteto-online.onrender.com` に設定済みです。開発用の別プロジェクトにはlocalhostの正確なoriginを登録します。メール確認は有効のままです。
+
+### 確認メール（Brevo）
+
+2026-09-30、ユーザーがBrevoの電話番号確認・SMTPキー作成・Supabaseへのキー保存を完了。Brevo relay有効、Supabase SMTP有効の保存状態を確認しました。設定は次のとおりです。
+
+| 項目             | 設定                                                        |
+| ---------------- | ----------------------------------------------------------- |
+| Host             | smtp-relay.brevo.com                                        |
+| Port             | 587                                                         |
+| Username         | BrevoのSMTP画面に表示されるLogin                            |
+| Password         | BrevoのSMTPキー。APIキー・Brevoログインパスワードは使わない |
+| Sender           | Brevoで確認済みの送信元 / 表示名 PuyoTeto                   |
+| Minimum interval | 同じユーザーへの再送は60秒間隔                              |
+
+SMTPキーはSupabase DashboardのAuth → Emails → SMTP Settingsだけに保存します。`VITE_*`、Renderのゲームサーバー、Gitには入れません。現時点では独自送信ドメインは未設定です。実受信・確認リンクの検証結果は [QA.md](QA.md) に記録します。
+
+送信トラブル時はSupabase AuthログとBrevo Transactionalログを確認してください。Brevoのリンク追跡が有効なら認証メールで無効にし、確認リンクが改変されないようにします。送信数を増やす際は両サービスの制限を確認します。[Supabase SMTP](https://supabase.com/docs/guides/auth/auth-smtp)、[Brevo SMTP設定](https://help.brevo.com/hc/en-us/articles/7924908994450-Send-transactional-emails-using-Brevo-SMTP)。
 
 ## 通信・状態管理
 
@@ -81,7 +98,9 @@ flowchart LR
 
 ## Render
 
-`render.yaml` は公式JSON schemaで検証済みの再現用構成です。2サービスを作成します。
+公開サイトは [https://puyoteto-online.onrender.com](https://puyoteto-online.onrender.com)、対戦サーバーは [https://puyoteto-game.onrender.com/health](https://puyoteto-game.onrender.com/health) です。両サービスはLIVE、ゲームコードは `1d2cb59`。Static Siteは `srv-dast1abbc2fs73a81u3g`、Web Serviceは `srv-dast17bbc2fs73a81ju0`。
+
+`render.yaml` は公式JSON schemaで検証済みの再現用構成です。現在の2サービスはMCPから個別作成したため、Blueprintには接続していません。既存環境を操作するときはサービスIDを確認し、重複作成しないでください。
 
 | 項目         | Static Site                           | Web Service                                  |
 | ------------ | ------------------------------------- | -------------------------------------------- |
@@ -118,8 +137,10 @@ PowerShell:
 ```powershell
 $env:ONLINE_QA='1'
 # 本番サイトを検証する場合だけ設定。ローカル検証時は省略。
-$env:QA_BASE_URL='https://YOUR_STATIC_SITE.onrender.com'
+$env:QA_BASE_URL='https://puyoteto-online.onrender.com'
 npx playwright test tests/browser/online.spec.ts
+# 公開サイトの両ゲームCPU戦・入力・エラーを検証（ローカルサーバーは起動しない）
+node scripts/smoke-production.mjs
 ```
 
 QAは実際に試合履歴・大会・QAアカウントの勝数を保存します。証拠はtest-results/（Git対象外）。物理Gamepad・SMTPの実配送・他ブラウザの制限はQA文書に明記します。
