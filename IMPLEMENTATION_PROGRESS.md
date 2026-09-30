@@ -20,11 +20,11 @@ Preserve the local games; finish and deploy authenticated authoritative online m
 
 ## In Progress
 
-- Final documentation/email-verification checkpoint and push. Existing game implementations were preserved.
+- None. Implementation, deployment, production QA and real signup/email confirmation are complete. Existing game implementations were preserved.
 
 ## Remaining
 
-- No required game/deployment work remains. Final Git checkpoint verification only. Physical controllers/other browsers and future enhancements remain outside this verified scope.
+- None required. Physical controllers/other browsers and future enhancements remain outside this verified scope.
 
 ## Architecture Decisions
 
@@ -114,4 +114,4 @@ None currently. Emulated-pad neutral-frame race was corrected in 1d2cb59; GitHub
 
 ## Next Exact Action
 
-Verify final documentation checkpoint is pushed and its GitHub CI status. No production deployment needed for these documentation/QA-script changes. For later application changes, keep auto-deploy OFF and deliberately release after tests. Do not start a local simulation pointed at the production Supabase project.
+No outstanding implementation action. Read Git history for the final pushed documentation checkpoints after fc7074b/6ee8547. No production deployment is needed for these documentation/QA-script changes. For later application changes, keep auto-deploy OFF and deliberately release after tests. Do not start a local simulation pointed at the production Supabase project.
